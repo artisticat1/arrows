@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-arrows-revamp",
+	"name": "Arrows Revamp",
+	"version": "0.1.0",
+	"minAppVersion": "0.12.0",
+	"description": "Draw arrows in your notes",
+	"author": "artisticat",
+	"authorUrl": "https://github.com/artisticat1",
+	"isDesktopOnly": false
+}

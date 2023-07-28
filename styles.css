@@ -1,0 +1,15 @@
+.arrow-identifier {
+    color: var(--text-faint);
+}
+
+.arrow-identifier-prettified-circle {
+    size: 1em;
+}
+
+.arrow-identifier-prettified-circle:hover {
+    cursor: pointer;
+}
+
+.leader-line {
+    z-index: -1;
+}
