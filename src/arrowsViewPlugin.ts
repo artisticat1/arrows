@@ -1,8 +1,9 @@
-import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin, WidgetType } from "@codemirror/view";
-import { ArrowIdentifierData, ArrowIdentifierPosData, ArrowIdentifierCollection, arrowSourceToArrowIdentifierData, arrowIdentifierCollectionIsResolved } from './utils';
-import { MatchDecoratorAll } from "./matchDecoratorAll";
-import * as constants from "./consts";
 import { EditorState } from "@codemirror/state";
+import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin, WidgetType } from "@codemirror/view";
+import { MatchDecoratorAll } from "./matchDecoratorAll";
+import { ArrowsManager } from "./arrowsManager";
+import { ArrowIdentifierData, ArrowIdentifierPosData, ArrowIdentifierCollection, arrowSourceToArrowIdentifierData, arrowIdentifierCollectionIsResolved } from './utils';
+import * as constants from "./consts";
 
 const arrowSourceRegex = /{([^{}]+)}/g;
 
@@ -25,30 +26,52 @@ const arrowIdentifierHighlighter = new MatchDecoratorAll({
 
 
 export class ArrowsViewPlugin {
-    container: Element;
+    container: HTMLElement;
+    arrowsManager: ArrowsManager;
     arrowIdentifierRanges: DecorationSet;
+    arrowIdentifierCollections: ArrowIdentifierCollection[];
     decorations: DecorationSet;
 
     constructor(view: EditorView) {
-        this.arrowIdentifierRanges = arrowIdentifierHighlighter.createDeco(view);
+        // Create a container to hold the arrows in
+        this.createContainer(view);
+        this.arrowsManager = new ArrowsManager(this.container);
 
+        this.arrowIdentifierRanges = arrowIdentifierHighlighter.createDeco(view);
         const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges);
-        const arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
-        const decos = this.arrowIdentifierCollectionsToDecos(arrowIdentifierCollections, view.state);
+        this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
+        const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, view.state);
         this.decorations = decos;
+
+        queueMicrotask(() => {
+            this.arrowsManager.drawArrows(view, this.arrowIdentifierCollections);
+        });
+    }
+
+    createContainer(view: EditorView) {
+        const container = document.createElement("div");
+        container.addClass(constants.ARROW_CONTAINER_CLASS);
+        view.scrollDOM.prepend(container);
+        this.container = container;
     }
     
     update(update: ViewUpdate) {
-        this.arrowIdentifierRanges = arrowIdentifierHighlighter.updateDeco(update, this.arrowIdentifierRanges);
-        
-        const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges);
-        const arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
-        const decos = this.arrowIdentifierCollectionsToDecos(arrowIdentifierCollections, update.state);
+        if (update.docChanged) {
+            this.arrowIdentifierRanges = arrowIdentifierHighlighter.updateDeco(update, this.arrowIdentifierRanges);
+            const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges);
+            this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
+        }
+        const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, update.state);
         this.decorations = decos;
+
+        queueMicrotask(() => {
+            this.arrowsManager.drawArrows(update.view, this.arrowIdentifierCollections);
+        });
     }
 
     destroy() {
-        // this.removeArrows();
+        this.arrowsManager.removeAllArrows();
+        this.container.remove();
     }
 
     arrowIdentifierRangesToArrowIdentifierPosData(arrowIdentifierRanges: DecorationSet): ArrowIdentifierPosData[] {

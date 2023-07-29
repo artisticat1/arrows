@@ -1,11 +1,6 @@
-export const ARROW_SIZE = 3;
-
-export const DIAGONAL = "diagonal";
-export const MARGIN = "margin";
-export const arrowTypes = [DIAGONAL, MARGIN];
-export const ARROW = "arrow";
-export const NOARROW = "no-arrow";
-export const arrowPlugTypes = [ARROW, NOARROW];
+import LeaderLine from "leaderline";
+import { EditorView } from "@codemirror/view";
+import { ARROW, MARGIN, NOARROW, DISC, arrowTypes, arrowPlugTypes } from "./consts";
 
 export interface ArrowIdentifierData {
     identifier: string,
@@ -30,6 +25,7 @@ export interface ArrowIdentifierCollection {
     start?: ArrowIdentifierPosData,
     ends: ArrowIdentifierPosData[]
 }
+
 
 export function arrowSourceToArrowIdentifierData(arrowSource: string):ArrowIdentifierData {
     const options = arrowSource.split("|");
@@ -118,4 +114,144 @@ export function getRGBAColor(colorName: string | undefined, opacity: number | un
     }
 
     return col + alpha;
+}
+
+export function getStartEndArrowPlugs(arrowheadName: string, arrowStartPlug?: string, arrowEndPlug?: string) {
+    // Returns the start and end arrow plug names and sizes for use with LeaderLine options
+
+    // arrowheadName is either "arrow1" or "arrow2":
+    // "arrow2" for diagonal arrows
+    // "arrow1" for margin arrows (adds an extra horizontal offset to the arrowhead)
+
+    const startPlug = (arrowStartPlug === ARROW) ? arrowheadName : DISC;
+    const startPlugSize = (arrowStartPlug === ARROW) ? 0.65 : 0.4;
+    
+    const endPlug = (arrowEndPlug === ARROW) ? arrowheadName : DISC;
+    const endPlugSize = (arrowEndPlug === ARROW) ? 0.65 : 0.4;
+
+    return {
+        startPlug: startPlug,
+        startPlugSize: startPlugSize,
+        endPlug: endPlug,
+        endPlugSize: endPlugSize
+    };
+}
+
+export function fixMarginArrowTrackNo(track: number) {
+    // Handle leader-line's startSocketGravity behaving strangely
+    if (track === 10) {
+        return 11;
+    }
+    else if (track >= 11) {
+        return track + 10;
+    }
+    else {
+        return track;
+    }
+}
+
+// https://github.com/anseki/leader-line/issues/28
+export function makeArrowArc(line: LeaderLine, radius: number) {
+    
+    function addArc(pathData: string, radius: number) {
+        const reL = /^L ?([\d.\-+]+) ([\d.\-+]+) ?/;
+        let newPathData, curXY, curDir, newXY, newDir,
+        sweepFlag, arcXY, arcStartXY;
+    
+        function getDir(xy1: {x: number, y: number}, xy2: {x: number, y: number}) {
+            if (xy1.x === xy2.x) {
+                return xy1.y < xy2.y ? 'd' : 'u';
+            } else if (xy1.y === xy2.y) {
+                return xy1.x < xy2.x ? 'r' : 'l';
+            }
+            throw new Error('Invalid data');
+        }
+    
+        function captureXY(s: any, x :number, y:number) {
+            newXY = {x: +x, y: +y};
+            return '';
+        }
+    
+        function offsetXY(xy: {x: number, y: number}, dir: string, offsetLen: number, toBack: boolean) {
+            return {
+                x: xy.x + (dir === 'l' ? -offsetLen : dir === 'r' ? offsetLen : 0) * (toBack ? -1 : 1),
+                y: xy.y + (dir === 'u' ? -offsetLen : dir === 'd' ? offsetLen : 0) * (toBack ? -1 : 1)
+            };
+        }
+    
+        pathData = pathData.trim().replace(/,/g, ' ').replace(/\s+/g, ' ')
+            .replace(/^M ?([\d.\-+]+) ([\d.\-+]+) ?/, function(s, x, y) {
+                curXY = {x: +x, y: +y};
+                return '';
+            });
+        if (!curXY) { throw new Error('Invalid data'); }
+        // @ts-ignore
+        newPathData = 'M' + curXY.x + ' ' + curXY.y;
+    
+        while (pathData) {
+            newXY = null;
+            pathData = pathData.replace(reL, captureXY);
+            if (!newXY) { throw new Error('Invalid data'); }
+        
+            newDir = getDir(curXY, newXY);
+            if (curDir) {
+                arcStartXY = offsetXY(curXY, curDir, radius, true);
+                arcXY = offsetXY(curXY, newDir, radius, false);
+                sweepFlag =
+                curDir === 'l' && newDir === 'u' ? '1' :
+                curDir === 'l' && newDir === 'd' ? '0' :
+                curDir === 'r' && newDir === 'u' ? '0' :
+                curDir === 'r' && newDir === 'd' ? '1' :
+                curDir === 'u' && newDir === 'l' ? '0' :
+                curDir === 'u' && newDir === 'r' ? '1' :
+                curDir === 'd' && newDir === 'l' ? '1' :
+                curDir === 'd' && newDir === 'r' ? '0' :
+                null;
+                if (!sweepFlag) { throw new Error('Invalid data'); }
+                newPathData += 'L' + arcStartXY.x + ' ' + arcStartXY.y +
+                'A ' + radius + ' ' + radius + ' 0 0 ' + sweepFlag + ' ' + arcXY.x + ' ' + arcXY.y;
+            }
+        
+            curXY = newXY;
+            curDir = newDir;
+        }
+        // @ts-ignore
+        newPathData += 'L' + curXY.x + ' ' + curXY.y;
+        return newPathData;
+    }
+
+    try {
+        // @ts-ignore
+        const arrowId:number = line._id;
+        
+        const elmsPath = document.getElementById("leader-line-" + arrowId + "-line-path");
+        if (!elmsPath) return;
+        
+        const pathData = elmsPath.getAttribute('d');
+        if (!pathData) return;
+        
+        elmsPath.setAttribute('d', addArc(pathData, radius));
+    }
+    catch {
+        // Invalid path data.
+    }
+}
+
+// -1: offscreen before the user's view
+// 0: onscreen
+// 1: offscreen after the user's view
+export type OffscreenPosition = -1|0|1;
+
+export function posToOffscreenPosition(view: EditorView, pos: number):OffscreenPosition {
+    const viewport = view.viewport;
+
+    if (pos < viewport.from) {
+        return -1;
+    }
+    else if (pos > viewport.to) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
