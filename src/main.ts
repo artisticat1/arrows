@@ -17,9 +17,8 @@ export default class ArrowsPlugin extends Plugin {
 	}
 
 	onunload() {
-		// TODO:
-		// - Remove arrow containers
-		// - Remove leader-line defs
+		const leaderLineDefs = document.getElementById("leader-line-defs");
+		if (leaderLineDefs) leaderLineDefs.remove();
 	}
 
 	async loadSettings() {
