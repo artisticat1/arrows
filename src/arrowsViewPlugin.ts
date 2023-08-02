@@ -140,7 +140,7 @@ export class ArrowsViewPlugin {
                 if (startColor) color = startColor;
             }
 
-            for (const arrowIdentifier of allArrowIdentifiers) {
+            for (const [index, arrowIdentifier] of allArrowIdentifiers.entries()) {
                 if (!arrowIdentifier) continue;
 
                 // "Unravel" the prettified circle when the cursor lies on the arrow identifier
@@ -149,11 +149,15 @@ export class ArrowsViewPlugin {
 
                 let deco;
                 if (isResolved && !shouldUnravel) {
+                    const nextArrowIdentifier = allArrowIdentifiers[(index+1) % allArrowIdentifiers.length];
+                    const scrollTo = nextArrowIdentifier?.from;
+
                     deco = Decoration.replace({
                         widget: new PrettifiedCircle(color, arrowIdentifier.arrowData),
                         inclusive: false,
                         block: false,
-                        arrowIdentifierPosData: arrowIdentifier
+                        arrowIdentifierPosData: arrowIdentifier,
+                        scrollTo: scrollTo
                     }).range(arrowIdentifier.from, arrowIdentifier.to);
                 }
                 else {
@@ -176,7 +180,37 @@ export class ArrowsViewPlugin {
 export const arrowsViewPlugin = ViewPlugin.fromClass(
     ArrowsViewPlugin,
     {
-        decorations: v => v.decorations
+        decorations: v => v.decorations,
+        eventHandlers: {
+            // When a prettified arrow identifier is clicked, scroll the editor to the next arrow identifier
+            mousedown: function (this, event, view) {
+                const target = event.target;
+                if (!(target instanceof HTMLElement)) return;
+                if (!target.hasClass(constants.ARROW_IDENTIFIER_PRETTIFIED_CIRCLE_CLASS)) return;
+
+                // Go through all decorations, searching for the decoration corresponding to
+                // this element
+                const decos:DecorationSet = this.decorations;
+                const rangeCursor = decos.iter();
+                const pos = view.posAtDOM(target);
+
+                while (rangeCursor.value != null) {
+                    if (rangeCursor.from === pos) break;
+                    rangeCursor.next();
+                }
+
+                const deco = rangeCursor.value;
+                if (deco == null) return;
+
+                // Fetch the scrollTo attribute from the decoration and scroll to that position
+                const scrollTo = deco.spec.scrollTo;
+                view.dispatch({
+                    effects: EditorView.scrollIntoView(scrollTo, {y: "center"})
+                });
+
+                event.preventDefault();
+            }
+        }
     }
 );
 
@@ -203,6 +237,10 @@ class PrettifiedCircle extends WidgetType {
 
         span.textContent = "●" // •
         return span;
+    }
+
+    ignoreEvent() {
+        return false;
     }
 }
 
