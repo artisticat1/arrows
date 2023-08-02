@@ -1,5 +1,7 @@
 import LeaderLine from "leaderline";
+import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { syntaxTree } from "@codemirror/language";
 import { ARROW, MARGIN, NOARROW, DISC, arrowTypes, arrowPlugTypes } from "./consts";
 
 export interface ArrowIdentifierData {
@@ -26,6 +28,13 @@ export interface ArrowIdentifierCollection {
     ends: ArrowIdentifierPosData[]
 }
 
+export function rangeWithinExcludedContext(from: number, to: number, state: EditorState) {
+    const tree = syntaxTree(state);
+    const tokenFrom = tree.resolveInner(from, 1).name;
+    const tokenTo = tree.resolveInner(to, -1).name;
+
+    return ["math", "codeblock", "inline-code"].some((val) => (tokenFrom.contains(val) || tokenTo.contains(val)));
+}
 
 export function arrowSourceToArrowIdentifierData(arrowSource: string):ArrowIdentifierData {
     const options = arrowSource.split("|");

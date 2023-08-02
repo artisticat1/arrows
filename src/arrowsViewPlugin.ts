@@ -2,7 +2,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin, WidgetType } from "@codemirror/view";
 import { MatchDecoratorAll } from "./matchDecoratorAll";
 import { ArrowsManager } from "./arrowsManager";
-import { ArrowIdentifierData, ArrowIdentifierPosData, ArrowIdentifierCollection, arrowSourceToArrowIdentifierData, arrowIdentifierCollectionIsResolved } from './utils';
+import { ArrowIdentifierData, ArrowIdentifierPosData, ArrowIdentifierCollection, arrowSourceToArrowIdentifierData, arrowIdentifierCollectionIsResolved, rangeWithinExcludedContext } from './utils';
 import * as constants from "./consts";
 
 const arrowSourceRegex = /{([^{}]+)}/g;
@@ -15,7 +15,7 @@ const arrowIdentifierHighlighter = new MatchDecoratorAll({
 
         const startOrEnd = "";
         const className = constants.ARROW_IDENTIFIER_CLASS + " " + startOrEnd;
-        
+
         return Decoration.mark({
             tagName: "span",
             class: className,
@@ -38,7 +38,7 @@ export class ArrowsViewPlugin {
         this.arrowsManager = new ArrowsManager(this.container);
 
         this.arrowIdentifierRanges = arrowIdentifierHighlighter.createDeco(view);
-        const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges);
+        const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, view.state);
         this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
         const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, view.state);
         this.decorations = decos;
@@ -54,11 +54,11 @@ export class ArrowsViewPlugin {
         view.scrollDOM.prepend(container);
         this.container = container;
     }
-    
+
     update(update: ViewUpdate) {
         if (update.docChanged) {
             this.arrowIdentifierRanges = arrowIdentifierHighlighter.updateDeco(update, this.arrowIdentifierRanges);
-            const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges);
+            const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, update.state);
             this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
         }
         const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, update.state);
@@ -74,18 +74,26 @@ export class ArrowsViewPlugin {
         this.container.remove();
     }
 
-    arrowIdentifierRangesToArrowIdentifierPosData(arrowIdentifierRanges: DecorationSet): ArrowIdentifierPosData[] {
+    arrowIdentifierRangesToArrowIdentifierPosData(arrowIdentifierRanges: DecorationSet, state: EditorState): ArrowIdentifierPosData[] {
         const rangeCursor = arrowIdentifierRanges.iter();
         const arrowIdentifierPosData: ArrowIdentifierPosData[] = [];
 
         while (rangeCursor.value != null) {
+            const from = rangeCursor.from;
+            const to = rangeCursor.to;
+
+            if (rangeWithinExcludedContext(from, to, state)) {
+                rangeCursor.next();
+                continue;
+            }
+
             const arrowData = rangeCursor.value.spec.arrowIdentifierData;
             if (!arrowData) {
                 rangeCursor.next();
                 continue;
             }
 
-            arrowIdentifierPosData.push({from: rangeCursor.from, to: rangeCursor.to, arrowData: arrowData});
+            arrowIdentifierPosData.push({from: from, to: to, arrowData: arrowData});
             rangeCursor.next();
         }
 
@@ -138,7 +146,7 @@ export class ArrowsViewPlugin {
                 // "Unravel" the prettified circle when the cursor lies on the arrow identifier
                 const sel = state.selection.main;
                 const shouldUnravel = (sel.from >= arrowIdentifier.from) && (sel.to <= arrowIdentifier.to);
-                
+
                 let deco;
                 if (isResolved && !shouldUnravel) {
                     deco = Decoration.replace({
@@ -176,7 +184,6 @@ export const arrowsViewPlugin = ViewPlugin.fromClass(
 class PrettifiedCircle extends WidgetType {
     private readonly color: string;
     private readonly arrowIdentifierData: ArrowIdentifierData;
-    private readonly className: string;
 
     constructor(color: string, arrowIdentifierData: ArrowIdentifierData) {
         super();
