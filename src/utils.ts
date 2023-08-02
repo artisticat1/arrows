@@ -28,6 +28,23 @@ export interface ArrowIdentifierCollection {
     ends: ArrowIdentifierPosData[]
 }
 
+export interface ArrowRecord {
+    line: LeaderLine;
+    endEl: HTMLElement;
+    startEl: HTMLElement;
+    startArrowData: ArrowIdentifierData;
+    endArrowData: ArrowIdentifierData;
+    startOffscreen: OffscreenPosition;
+    endOffscreen: OffscreenPosition;
+    startElPos: OffsetPosition;
+    endElPos: OffsetPosition;
+}
+
+export interface OffsetPosition {
+    offsetLeft: number,
+    offsetTop: number
+}
+
 export function rangeWithinExcludedContext(from: number, to: number, state: EditorState) {
     const tree = syntaxTree(state);
     const tokenFrom = tree.resolveInner(from, 1).name;
@@ -38,7 +55,7 @@ export function rangeWithinExcludedContext(from: number, to: number, state: Edit
 
 export function arrowSourceToArrowIdentifierData(arrowSource: string):ArrowIdentifierData {
     const options = arrowSource.split("|");
-    
+
     const result:ArrowIdentifierData = {
         identifier: "",
         arrowSource: arrowSource,
@@ -48,7 +65,7 @@ export function arrowSourceToArrowIdentifierData(arrowSource: string):ArrowIdent
     };
 
     result.arrowArrowhead = result.isStart ? NOARROW : ARROW;
-    
+
     // Allow removing the arrowhead from an end identifier
     // By inserting "no-arrow" to the end of the syntax, e.g. {test|no-arrow}
     if (result.isStart && options.length === 2 && arrowPlugTypes.contains(options[1])) {
@@ -57,7 +74,7 @@ export function arrowSourceToArrowIdentifierData(arrowSource: string):ArrowIdent
 
     const identifier = options.shift();
     result.identifier = identifier ? identifier : "";
-    
+
     if (result.isStart) {
         for (const option of options) {
             const optionAsFloat = parseFloat(option);
@@ -134,7 +151,7 @@ export function getStartEndArrowPlugs(arrowheadName: string, arrowStartPlug?: st
 
     const startPlug = (arrowStartPlug === ARROW) ? arrowheadName : DISC;
     const startPlugSize = (arrowStartPlug === ARROW) ? 0.65 : 0.4;
-    
+
     const endPlug = (arrowEndPlug === ARROW) ? arrowheadName : DISC;
     const endPlugSize = (arrowEndPlug === ARROW) ? 0.65 : 0.4;
 
@@ -161,12 +178,12 @@ export function fixMarginArrowTrackNo(track: number) {
 
 // https://github.com/anseki/leader-line/issues/28
 export function makeArrowArc(line: LeaderLine, radius: number) {
-    
+
     function addArc(pathData: string, radius: number) {
         const reL = /^L ?([\d.\-+]+) ([\d.\-+]+) ?/;
         let newPathData, curXY, curDir, newXY, newDir,
         sweepFlag, arcXY, arcStartXY;
-    
+
         function getDir(xy1: {x: number, y: number}, xy2: {x: number, y: number}) {
             if (xy1.x === xy2.x) {
                 return xy1.y < xy2.y ? 'd' : 'u';
@@ -175,19 +192,19 @@ export function makeArrowArc(line: LeaderLine, radius: number) {
             }
             throw new Error('Invalid data');
         }
-    
+
         function captureXY(s: any, x :number, y:number) {
             newXY = {x: +x, y: +y};
             return '';
         }
-    
+
         function offsetXY(xy: {x: number, y: number}, dir: string, offsetLen: number, toBack: boolean) {
             return {
                 x: xy.x + (dir === 'l' ? -offsetLen : dir === 'r' ? offsetLen : 0) * (toBack ? -1 : 1),
                 y: xy.y + (dir === 'u' ? -offsetLen : dir === 'd' ? offsetLen : 0) * (toBack ? -1 : 1)
             };
         }
-    
+
         pathData = pathData.trim().replace(/,/g, ' ').replace(/\s+/g, ' ')
             .replace(/^M ?([\d.\-+]+) ([\d.\-+]+) ?/, function(s, x, y) {
                 curXY = {x: +x, y: +y};
@@ -196,12 +213,12 @@ export function makeArrowArc(line: LeaderLine, radius: number) {
         if (!curXY) { throw new Error('Invalid data'); }
         // @ts-ignore
         newPathData = 'M' + curXY.x + ' ' + curXY.y;
-    
+
         while (pathData) {
             newXY = null;
             pathData = pathData.replace(reL, captureXY);
             if (!newXY) { throw new Error('Invalid data'); }
-        
+
             newDir = getDir(curXY, newXY);
             if (curDir) {
                 arcStartXY = offsetXY(curXY, curDir, radius, true);
@@ -220,7 +237,7 @@ export function makeArrowArc(line: LeaderLine, radius: number) {
                 newPathData += 'L' + arcStartXY.x + ' ' + arcStartXY.y +
                 'A ' + radius + ' ' + radius + ' 0 0 ' + sweepFlag + ' ' + arcXY.x + ' ' + arcXY.y;
             }
-        
+
             curXY = newXY;
             curDir = newDir;
         }
@@ -232,13 +249,13 @@ export function makeArrowArc(line: LeaderLine, radius: number) {
     try {
         // @ts-ignore
         const arrowId:number = line._id;
-        
+
         const elmsPath = document.getElementById("leader-line-" + arrowId + "-line-path");
         if (!elmsPath) return;
-        
+
         const pathData = elmsPath.getAttribute('d');
         if (!pathData) return;
-        
+
         elmsPath.setAttribute('d', addArc(pathData, radius));
     }
     catch {
@@ -263,4 +280,48 @@ export function posToOffscreenPosition(view: EditorView, pos: number):OffscreenP
     else {
         return 0;
     }
+}
+
+export function getElementOffset(el: HTMLElement):OffsetPosition {
+    let offsetLeft = 0;
+    let offsetTop  = 0;
+    let element = el;
+
+    while (element) {
+        if (element.hasClass("cm-content")) {
+            break;
+        }
+
+        offsetLeft += element.offsetLeft;
+        offsetTop  += element.offsetTop;
+
+        // @ts-expect-error
+        element = element.offsetParent;
+    }
+
+    return {offsetLeft, offsetTop};
+}
+
+function offsetPositionsEqual(a: OffsetPosition, b: OffsetPosition) {
+    return (a.offsetLeft === b.offsetLeft && a.offsetTop === b.offsetTop);
+}
+
+function arrowIdentifierDataEqual(a: ArrowIdentifierData, b: ArrowIdentifierData) {
+    return (a.identifier === b.identifier
+        && a.color === b.color
+        && a.opacity === b.opacity
+        && a.track === b.track
+        && a.type === b.type
+        && a.arrowArrowhead === b.arrowArrowhead);
+}
+
+export function arrowRecordsEqual(a: ArrowRecord, b: ArrowRecord) {
+    return (a.startEl === b.startEl
+        && a.endEl === b.endEl
+        && arrowIdentifierDataEqual(a.startArrowData, b.startArrowData)
+        && arrowIdentifierDataEqual(a.endArrowData, b.endArrowData)
+        && a.startOffscreen == b.startOffscreen
+        && a.endOffscreen == b.endOffscreen
+        && offsetPositionsEqual(a.startElPos, b.startElPos)
+        && offsetPositionsEqual(a.endElPos, b.endElPos));
 }

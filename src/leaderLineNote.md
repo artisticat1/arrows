@@ -15,3 +15,9 @@ Furthermore, the type definitions for LeaderLine are modified to account for Poi
 start:HTMLElement|PointAnchor;
 end:HTMLElement|PointAnchor;
 ```
+
+To solve errors when resizing the window and arrows have been removed, comment out these lines in `index.js`:
+```
+// this.#onResize=()=>{requestAnimationFrame(()=>{this.position()})};
+// window.addEventListener("resize",this.#onResize);
+```
