@@ -13,3 +13,8 @@
 .leader-line {
     z-index: -1;
 }
+
+.arrows-custom-colors-input textarea {
+    height: 6em;
+    width: 20em;
+}

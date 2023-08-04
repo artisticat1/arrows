@@ -1,16 +1,17 @@
-import LeaderLine from "leaderline";
+import LeaderLine, { LeaderLinePath } from "leaderline";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { ARROW, MARGIN, NOARROW, DISC, arrowTypes, arrowPlugTypes } from "./consts";
+import { PLUGIN_ID } from "./consts";
+import ArrowsPlugin from "./main";
 
 export interface ArrowIdentifierData {
     identifier: string,
     arrowSource: string,
     isStart: boolean,
+    opacity: number,
     color?: string,
-    opacity?: number,
-    effectiveColor?: string,
     type?: string,
     track?: number,
     arrowArrowhead?: string
@@ -61,6 +62,7 @@ export function arrowSourceToArrowIdentifierData(arrowSource: string):ArrowIdent
         arrowSource: arrowSource,
         isStart: options.length != 1,
         type: MARGIN,
+        opacity: 1,
         track: 0,
     };
 
@@ -102,8 +104,6 @@ export function arrowSourceToArrowIdentifierData(arrowSource: string):ArrowIdent
         }
     }
 
-    result.effectiveColor = result.color;
-
     return result;
 }
 
@@ -113,33 +113,26 @@ export function arrowIdentifierCollectionIsResolved(arrowIdentifierCollection: A
     return arrowIdentifierCollection.ends.length > 0;
 }
 
-// https://stackoverflow.com/questions/1573053/javascript-function-to-convert-color-names-to-hex-codes
-export function getRGBAColor(colorName: string | undefined, opacity: number | undefined):string {
-
+export function colorToEffectiveColor(colorName: string | undefined):string {
     // @ts-ignore
-    let defaultColor = window.app.plugins.plugins["obsidian-arrows"].settings.defaultArrowColor;
-    if (!defaultColor) defaultColor = "currentColor";
+    const plugin:ArrowsPlugin = window.app.plugins.plugins[PLUGIN_ID];
+    let defaultColor = plugin.settings.defaultArrowColor;
+    if (!defaultColor) defaultColor = "var(--text-normal)";
 
-    const opacityNum = opacity ? opacity : 1;
-    const opacityInt = Math.round(opacityNum * 255);
-    const alpha = ('0' + opacityInt.toString(16)).slice(-2);
+    if (!colorName) return defaultColor;
 
-    const ctx = document.createElement('canvas').getContext('2d');
-    let col = defaultColor;
-
-    if (ctx && colorName) {
-        ctx.fillStyle = colorName;
-
-        // Fall back to default color when the color name is invalid
-        // e.g. when the user is still typing out the color name
-        if ((ctx.fillStyle === "#000000") && !(["black", "#000000"].contains(colorName))) {
-            ctx.fillStyle = defaultColor;
-        }
-
-        col = ctx.fillStyle;
+    const userDefinedColors = plugin.userDefinedColorsDict;
+    if (colorName in userDefinedColors) {
+        return userDefinedColors[colorName];
     }
 
-    return col + alpha;
+    return colorName;
+}
+
+export function getDiagonalArrowStyleSetting():LeaderLinePath {
+    // @ts-ignore
+    const plugin:ArrowsPlugin = window.app.plugins.plugins[PLUGIN_ID];
+    return plugin.settings.diagonalArrowStyle;
 }
 
 export function getStartEndArrowPlugs(arrowheadName: string, arrowStartPlug?: string, arrowEndPlug?: string) {

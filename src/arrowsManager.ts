@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 import LeaderLine from "leaderline";
-import { ArrowIdentifierCollection, ArrowIdentifierData, ArrowIdentifierPosData, getStartEndArrowPlugs, fixMarginArrowTrackNo, makeArrowArc, posToOffscreenPosition, OffscreenPosition, ArrowRecord, getElementOffset, arrowRecordsEqual } from './utils';
+import { ArrowIdentifierCollection, ArrowIdentifierData, ArrowIdentifierPosData, getStartEndArrowPlugs, fixMarginArrowTrackNo, makeArrowArc, posToOffscreenPosition, OffscreenPosition, ArrowRecord, getElementOffset, arrowRecordsEqual, colorToEffectiveColor, getDiagonalArrowStyleSetting } from './utils';
 import * as constants from "./consts";
 
 
@@ -119,15 +119,16 @@ export class ArrowsManager {
         else {
             line = this.drawMarginArrow(startEl, endEl, startArrowData, endArrowData, startOffscreen, endOffscreen);
         }
+        if (line) {
+            line.element.style.opacity = startArrowData.opacity.toString();
+        }
         return line;
     }
 
     drawDiagonalArrow(startEl: HTMLElement, endEl: HTMLElement, startArrowData: ArrowIdentifierData, endArrowData: ArrowIdentifierData) {
         if (startEl == endEl) return;
 
-        let color = startArrowData.color;
-        if (!color) color = "currentColor"; // TODO
-
+        const color = colorToEffectiveColor(startArrowData.color);
         const plugs = getStartEndArrowPlugs(constants.DIAGONAL_ARROW, startArrowData.arrowArrowhead, endArrowData.arrowArrowhead);
 
         // @ts-ignore
@@ -137,7 +138,8 @@ export class ArrowsManager {
             end: endEl,
             color: color,
             size: constants.ARROW_SIZE,
-            ...plugs
+            ...plugs,
+            path: getDiagonalArrowStyleSetting()
         });
 
         return line;
@@ -148,9 +150,7 @@ export class ArrowsManager {
         if (!res) return;
         const {startAnchor, endAnchor} = res;
 
-        let color = startArrowData.color;
-        if (!color) color = "currentColor"; // TODO
-
+        const color = colorToEffectiveColor(startArrowData.color);
         const plugs = getStartEndArrowPlugs(constants.MARGIN_ARROW, startArrowData.arrowArrowhead, endArrowData.arrowArrowhead);
         let track = startArrowData.track ? startArrowData.track : 0;
         track = fixMarginArrowTrackNo(track);

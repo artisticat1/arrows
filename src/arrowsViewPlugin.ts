@@ -2,7 +2,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin, WidgetType } from "@codemirror/view";
 import { MatchDecoratorAll } from "./matchDecoratorAll";
 import { ArrowsManager } from "./arrowsManager";
-import { ArrowIdentifierData, ArrowIdentifierPosData, ArrowIdentifierCollection, arrowSourceToArrowIdentifierData, arrowIdentifierCollectionIsResolved, rangeWithinExcludedContext } from './utils';
+import { ArrowIdentifierData, ArrowIdentifierPosData, ArrowIdentifierCollection, arrowSourceToArrowIdentifierData, arrowIdentifierCollectionIsResolved, rangeWithinExcludedContext, colorToEffectiveColor } from './utils';
 import * as constants from "./consts";
 
 const arrowSourceRegex = /{([^{}]+)}/g;
@@ -139,6 +139,8 @@ export class ArrowsViewPlugin {
                 const startColor = start.arrowData.color;
                 if (startColor) color = startColor;
             }
+
+            color = colorToEffectiveColor(color);
 
             for (const [index, arrowIdentifier] of allArrowIdentifiers.entries()) {
                 if (!arrowIdentifier) continue;

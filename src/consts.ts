@@ -1,3 +1,4 @@
+export const PLUGIN_ID = "arrows";
 export const ARROW_IDENTIFIER_CLASS = "arrow-identifier";
 export const ARROW_START_IDENTIFIER_CLASS = "arrow-start-identifier";
 export const ARROW_END_IDENTIFIER_CLASS = "arrow-end-identifier";
