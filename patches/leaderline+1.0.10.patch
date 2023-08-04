@@ -23,3 +23,18 @@ index 15be63a..ba01f12 100644
      /**
       * @default "coral"
       */
+diff --git a/node_modules/leaderline/src/index.js b/node_modules/leaderline/src/index.js
+index 7d9c31e..a1174c1 100644
+--- a/node_modules/leaderline/src/index.js
++++ b/node_modules/leaderline/src/index.js
+@@ -12,8 +12,8 @@ export default class LeaderLine extends Line {
+         if(parent instanceof HTMLElement){
+             parent.style.position="relative";
+             parent.appendChild(this.element);
+-            this.#onResize=()=>{requestAnimationFrame(()=>{this.position()})};
+-            window.addEventListener("resize",this.#onResize);
++            // this.#onResize=()=>{requestAnimationFrame(()=>{this.position()})};
++            // window.addEventListener("resize",this.#onResize);
+             this.position();
+         }
+     }
