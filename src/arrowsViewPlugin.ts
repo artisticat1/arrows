@@ -38,12 +38,15 @@ export class ArrowsViewPlugin {
         this.arrowsManager = new ArrowsManager(this.container);
 
         this.arrowIdentifierRanges = arrowIdentifierHighlighter.createDeco(view);
-        const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, view.state);
-        this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
-        const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, view.state);
-        this.decorations = decos;
+        this.decorations = Decoration.none;
 
+        // Wait until syntaxTree is ready and widgets have been rendered in the DOM to draw arrows
         queueMicrotask(() => {
+            const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, view.state);
+            this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
+            const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, view.state);
+            this.decorations = decos;
+
             this.arrowsManager.drawArrows(view, this.arrowIdentifierCollections);
         });
     }
@@ -56,14 +59,13 @@ export class ArrowsViewPlugin {
     }
 
     update(update: ViewUpdate) {
-        if (update.docChanged) {
-            this.arrowIdentifierRanges = arrowIdentifierHighlighter.updateDeco(update, this.arrowIdentifierRanges);
-            const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, update.state);
-            this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
-        }
+        this.arrowIdentifierRanges = arrowIdentifierHighlighter.updateDeco(update, this.arrowIdentifierRanges);
+        const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, update.state);
+        this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
         const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, update.state);
         this.decorations = decos;
 
+        // Wait until widgets have been rendered in the DOM to draw arrows
         queueMicrotask(() => {
             this.arrowsManager.drawArrows(update.view, this.arrowIdentifierCollections);
         });
