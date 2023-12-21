@@ -19,7 +19,6 @@ export class ArrowsManager {
     }
 
     drawArrows(arrowIdentifierCollections: ArrowIdentifierCollection[]) {
-        // console.log("Drawing arrows.");
         const view = this.view;
         const oldArrows = this.arrows;
         const newArrows = new Map();
@@ -48,12 +47,9 @@ export class ArrowsManager {
                     const removed = this.removeRecordFromMap(oldArrows, endEl, arrowAlreadyExistsIndex);
                     if (removed)
                         this.addRecordToMap(newArrows, endEl, removed);
-
-                    // console.log("Keeping arrow", removed);
                 }
                 else {
                     // Draw an arrow between startEl and endEl
-                    // console.log("Drawing an arrow between", startEl, "and", endEl);
 
                     // LeaderLine may fail to draw an arrow and throw an error
                     try {
@@ -281,7 +277,6 @@ export class ArrowsManager {
 
         this.arrows.forEach((arrowRecords, endEl) => {
             arrowRecords.forEach((arrowRecord) => {
-                // console.log("Removing arrow", arrowRecord.startArrowData.identifier, arrowRecord.startArrowData.color, arrowRecord.startEl, endEl);
                 arrowRecord.line.remove();
             });
             this.arrows.delete(endEl);
