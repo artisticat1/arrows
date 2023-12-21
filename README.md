@@ -1,15 +1,17 @@
 # Arrows
 A plugin for [Obsidian](https://obsidian.md/) that lets you draw arrows in your notes, similar to how you might draw arrows across different parts of your notes on paper.
 
+**Works in Live Preview mode only.**
+
 ![demo](screenshots/demo.png)
 
 ## Usage
 ### Drawing arrows
 Type `{arrow-identifier|color}` to mark the start of an arrow, e.g. `{my-arrow|#1e90ff}`.
 
-Type `{arrow-identifier}` to mark the end of the arrow; in this case, `{my-arrow}`.
+Then, type `{arrow-identifier}` elsewhere to mark the end of the arrow; in this case, `{my-arrow}`.
 
-An arrow will be drawn from the start identifier to the end identifier.
+An arrow will be drawn from the start identifier to the end identifier along the margin.
 
 <img width=300 align="right" src="./screenshots/drawing-arrows.png">
 
@@ -20,7 +22,7 @@ Morbi et lacus suscipit, dignissim purus at, dapibus augue. {my-arrow} Aliquam n
 ```
 
 ### Diagonal arrows
-For a diagonal arrow, append "`|diagonal`" to the start of the arrow, e.g. `{my-arrow|#ff5555|diagonal}`.
+To create a diagonal arrow, append "`|diagonal`" to the start identifier of the arrow, e.g. `{my-arrow|#ff5555|diagonal}`.
 
 <img width=300 align="right" src="./screenshots/diagonal.png">
 
@@ -55,7 +57,7 @@ Pellentesque posuere ex non facilisis bibendum. Integer iaculis dolor dignissim,
 ```
 
 ### Adjusting margin arrows
-Adjust the x-position of margin arrows by appending "`|x-pos`" to the start of the arrow, where `x-pos` is a number between 0 and 30, e.g. `{my-arrow|blue|10}`.
+Adjust the x-position of margin arrows by appending "`|x-pos`" to the start identifier, where `x-pos` is a number between 0 and 30, e.g. `{my-arrow|blue|10}`.
 
 <img width=300 align="right" src="./screenshots/adjusting-margin-arrows.png">
 
@@ -69,14 +71,14 @@ Integer iaculis dolor dignissim, ultrices ligula eu, malesuada metus. {first}
 ```
 
 ### Arrowheads
-Add an arrowhead to the start of an arrow by appending "`|arrow`".
+Add an arrowhead to the start of an arrow by appending "`|arrow`" to the start identifier.
 
-Remove the arrowhead at the *end* of an arrow by appending "`|no-arrow`" to it.
+Remove the arrowhead at the *end* of an arrow by appending "`|no-arrow`" to the end identifier.
 
 <img width=300 align="right" src="./screenshots/arrowheads.png">
 
 ```
-Lorem ipsum dolor sit amet, {double-arrow|#3d6eff|arrow} consectetur adipiscing elit. 
+Lorem ipsum dolor sit amet, {double-arrow|#3d6eff|arrow} consectetur adipiscing elit.
 
 Morbi et lacus suscipit, {double-arrow} dignissim purus at, dapibus augue. {line|#9d6efa} Aliquam non lectus varius, tempus tortor ac, commodo purus.
 
@@ -86,7 +88,7 @@ Pellentesque posuere ex non facilisis bibendum. {line|no-arrow}
 ### Navigating between arrows
 When the cursor is moved outside of the `{arrow-identifier}` syntax, the syntax will be rendered as a small circle ● for a tidier look.
 
-You can click on any arrow identifier ● to scroll to the next matching identifier. This lets you quickly navigate between arrow start/end positions in a long document.
+You can click on any arrow identifier ● to automatically scroll to the next matching identifier. This lets you quickly navigate between arrow start/end positions in a long document.
 
 ## Full arrow syntax
 Write
@@ -104,6 +106,9 @@ Arrows will be drawn from each start identifier to all corresponding end identif
 
 ## Limitations
 Works in Live Preview mode only.
+
+## Contributing
+Any contributions and PRs are welcome!
 
 ## Acknowledgements
 This project uses the [leader-line](https://anseki.github.io/leader-line/) library to draw arrows.
