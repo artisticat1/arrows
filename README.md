@@ -13,18 +13,17 @@ Then, type `{arrow-identifier}` elsewhere to mark the end of the arrow; in this 
 
 An arrow will be drawn from the start identifier to the end identifier along the margin.
 
-<img width=300 align="right" src="./screenshots/drawing-arrows.png">
-
 ```
 Lorem ipsum dolor sit amet, consectetur {my-arrow|#1e90ff} adipiscing elit. Tempus tortor ac, commodo purus.
 
 Morbi et lacus suscipit, dignissim purus at, dapibus augue. {my-arrow} Aliquam non lectus varius.
 ```
+<img width=450 src="./screenshots/drawing-arrows.png">
+
+---
 
 ### Diagonal arrows
 To create a diagonal arrow, append "`|diagonal`" to the start identifier of the arrow, e.g. `{my-arrow|#ff5555|diagonal}`.
-
-<img width=300 align="right" src="./screenshots/diagonal.png">
 
 ```
 Lorem ipsum dolor sit amet, consectetur {my-arrow2|#ff5555|diagonal} adipiscing elit. Tempus tortor ac, commodo purus.
@@ -32,10 +31,12 @@ Lorem ipsum dolor sit amet, consectetur {my-arrow2|#ff5555|diagonal} adipiscing 
 Morbi et lacus suscipit, dignissim purus at, dapibus {my-arrow2} augue. Aliquam non lectus varius.
 ```
 
+<img width=450 src="./screenshots/diagonal.png">
+
+---
+
 ### Drawing more arrows
 You can add more arrows by using different arrow identifiers, e.g. `{this-is-another-arrow|orange}`:
-
-<img width=300 align="right" src="./screenshots/more-arrows.png">
 
 ```
 Lorem ipsum dolor sit amet, {this-is-another-arrow|orange} consectetur adipiscing elit. {my-arrow3}
@@ -43,10 +44,12 @@ Lorem ipsum dolor sit amet, {this-is-another-arrow|orange} consectetur adipiscin
 Morbi et lacus suscipit, dignissim purus at, dapibus augue. Aliquam non lectus varius, {my-arrow3|#1e90ff|diagonal} tempus tortor ac, commodo purus. {this-is-another-arrow}
 ```
 
+<img width=450 src="./screenshots/more-arrows.png">
+
+---
+
 ### Multi-arrows
 You can have multiple end identifiers corresponding to a single start identifier. An arrow will be drawn for each:
-
-<img width=300 align="right" src="./screenshots/multi-arrows.png">
 
 ```
 Lorem ipsum dolor sit amet, {multi-arrow|limegreen} consectetur adipiscing elit.
@@ -56,10 +59,12 @@ Morbi et lacus suscipit, dignissim purus at, dapibus augue. Aliquam non lectus v
 Pellentesque posuere ex non facilisis bibendum. Integer iaculis dolor dignissim, ultrices ligula eu, malesuada metus. {multi-arrow}
 ```
 
+<img width=450 src="./screenshots/multi-arrows.png">
+
+---
+
 ### Adjusting margin arrows
 Adjust the x-position of margin arrows by appending "`|x-pos`" to the start identifier, where `x-pos` is a number between 0 and 30, e.g. `{my-arrow|blue|10}`.
-
-<img width=300 align="right" src="./screenshots/adjusting-margin-arrows.png">
 
 ```
 Lorem ipsum dolor sit amet, {first|dodgerblue|20} consectetur adipiscing elit. {second|limegreen|10}
@@ -70,12 +75,14 @@ Pellentesque posuere {third} ex non facilisis bibendum. {second}
 Integer iaculis dolor dignissim, ultrices ligula eu, malesuada metus. {first}
 ```
 
+<img width=450 src="./screenshots/adjusting-margin-arrows.png">
+
+---
+
 ### Arrowheads
 Add an arrowhead to the start of an arrow by appending "`|arrow`" to the start identifier.
 
 Remove the arrowhead at the *end* of an arrow by appending "`|no-arrow`" to the end identifier.
-
-<img width=300 align="right" src="./screenshots/arrowheads.png">
 
 ```
 Lorem ipsum dolor sit amet, {double-arrow|#3d6eff|arrow} consectetur adipiscing elit.
@@ -84,6 +91,10 @@ Morbi et lacus suscipit, {double-arrow} dignissim purus at, dapibus augue. {line
 
 Pellentesque posuere ex non facilisis bibendum. {line|no-arrow}
 ```
+
+<img width=450 src="./screenshots/arrowheads.png">
+
+---
 
 ### Navigating between arrows
 When the cursor is moved outside of the `{arrow-identifier}` syntax, the syntax will be rendered as a small circle ● for a tidier look.
