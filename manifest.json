@@ -1,10 +1,11 @@
 {
-	"id": "arrows",
+	"id": "arrows-in-md",
 	"name": "Arrows",
 	"version": "1.0.0",
 	"minAppVersion": "1.0.0",
-	"description": "Draw arrows across different parts of your notes, like on paper",
+	"description": "Draw arrows across different parts of your notes, similar to on paper",
 	"author": "artisticat",
 	"authorUrl": "https://github.com/artisticat1",
-	"isDesktopOnly": false
+	"fundingUrl": "https://ko-fi.com/artisticat",
+	"isDesktopOnly": true
 }

@@ -6,7 +6,7 @@ on:
       - "*"
 
 env:
-  PLUGIN_NAME: obsidian-arrows
+  PLUGIN_NAME: arrows-in-md
 
 jobs:
   build:
