@@ -38,8 +38,8 @@ export class ArrowsSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.defaultArrowColor = value;
 
-					this.plugin.reloadArrowsViewPlugin();
 					debounce(() => {
+						this.plugin.reconfigureArrowsConfig();
 						this.plugin.reloadArrowsViewPlugin();
 					}, 1000);
 					await this.plugin.saveSettings();
@@ -54,7 +54,7 @@ export class ArrowsSettingTab extends PluginSettingTab {
 			.setValue(this.plugin.settings.diagonalArrowStyle)
 			.onChange(async (value) => {
 				this.plugin.settings.diagonalArrowStyle = value as LeaderLinePath;
-
+				this.plugin.reconfigureArrowsConfig();
 				this.plugin.reloadArrowsViewPlugin();
 				await this.plugin.saveSettings();
 			}));
@@ -68,10 +68,9 @@ export class ArrowsSettingTab extends PluginSettingTab {
 		.setPlaceholder("my-custom-color: #26edab\nblue: rgb(0, 98, 255)\ngreen: limegreen")
 		.onChange(async (value) => {
 			this.plugin.settings.userDefinedColors = value;
-			this.plugin.loadUserDefinedColorsDict();
 
-			this.plugin.reloadArrowsViewPlugin();
 			debounce(() => {
+				this.plugin.reconfigureArrowsConfig();
 				this.plugin.reloadArrowsViewPlugin();
 			}, 1000);
 

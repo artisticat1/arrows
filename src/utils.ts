@@ -1,10 +1,10 @@
-import LeaderLine, { LeaderLinePath } from "leaderline";
+import LeaderLine from "leaderline";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
+import { Workspace, MarkdownView } from "obsidian";
 import { ARROW, MARGIN, NOARROW, DISC, arrowTypes, arrowPlugTypes } from "./consts";
-import { PLUGIN_ID } from "./consts";
-import ArrowsPlugin from "./main";
+import { ArrowsPluginSettings } from "./settings";
 
 export interface ArrowIdentifierData {
     identifier: string,
@@ -113,26 +113,33 @@ export function arrowIdentifierCollectionIsResolved(arrowIdentifierCollection: A
     return arrowIdentifierCollection.ends.length > 0;
 }
 
-export function colorToEffectiveColor(colorName: string | undefined):string {
-    // @ts-ignore
-    const plugin:ArrowsPlugin = window.app.plugins.plugins[PLUGIN_ID];
-    let defaultColor = plugin.settings.defaultArrowColor;
+function getUserDefinedColorsDict(arrowSettings: ArrowsPluginSettings) {
+    const dict: {[colorName: string]: string} = {};
+
+    const lines = arrowSettings.userDefinedColors.split("\n");
+    lines.forEach(val => {
+        const line = val.replaceAll(" ", "").split(":");
+
+        if (line[1])
+            dict[line[0]] = line[1];
+    });
+
+    return dict;
+}
+
+export function colorToEffectiveColor(colorName: string | undefined, arrowSettings: ArrowsPluginSettings):string {
+    let defaultColor = arrowSettings.defaultArrowColor;
     if (!defaultColor) defaultColor = "var(--text-normal)";
 
     if (!colorName) return defaultColor;
 
-    const userDefinedColors = plugin.userDefinedColorsDict;
+    // TODO: no need to process dict on every keypress
+    const userDefinedColors = getUserDefinedColorsDict(arrowSettings);
     if (colorName in userDefinedColors) {
         return userDefinedColors[colorName];
     }
 
     return colorName;
-}
-
-export function getDiagonalArrowStyleSetting():LeaderLinePath {
-    // @ts-ignore
-    const plugin:ArrowsPlugin = window.app.plugins.plugins[PLUGIN_ID];
-    return plugin.settings.diagonalArrowStyle;
 }
 
 export function getStartEndArrowPlugs(arrowheadName: string, arrowStartPlug?: string, arrowEndPlug?: string) {
@@ -317,4 +324,12 @@ export function arrowRecordsEqual(a: ArrowRecord, b: ArrowRecord) {
         && a.endOffscreen == b.endOffscreen
         && offsetPositionsEqual(a.startElPos, b.startElPos)
         && offsetPositionsEqual(a.endElPos, b.endElPos));
+}
+
+export function iterateCM6(workspace: Workspace, callback: (editor: EditorView) => unknown) {
+    workspace.iterateAllLeaves(leaf => {
+        leaf?.view instanceof MarkdownView &&
+        (leaf.view.editor as any)?.cm instanceof EditorView &&
+        callback((leaf.view.editor as any).cm);
+    });
 }

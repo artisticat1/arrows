@@ -1,23 +1,26 @@
 import { EditorView } from "@codemirror/view";
 import LeaderLine from "leaderline";
-import { ArrowIdentifierCollection, ArrowIdentifierData, ArrowIdentifierPosData, getStartEndArrowPlugs, fixMarginArrowTrackNo, makeArrowArc, posToOffscreenPosition, OffscreenPosition, ArrowRecord, getElementOffset, arrowRecordsEqual, colorToEffectiveColor, getDiagonalArrowStyleSetting } from './utils';
+import { ArrowIdentifierCollection, ArrowIdentifierData, ArrowIdentifierPosData, getStartEndArrowPlugs, fixMarginArrowTrackNo, makeArrowArc, posToOffscreenPosition, OffscreenPosition, ArrowRecord, getElementOffset, arrowRecordsEqual, colorToEffectiveColor } from './utils';
 import * as constants from "./consts";
+import { getArrowConfigFromView } from "./arrowsConfig";
 
 
 export class ArrowsManager {
-    private readonly container: HTMLElement;
+    private view: EditorView;
+    private container: HTMLElement;
     private arrows: Map<HTMLElement, ArrowRecord[]>; // Index arrows by endEl
     // Use ArrowRecord[] instead of ArrowRecord, because *multiple* long margin arrows may be drawn
     // between the first and last `.cm-line`s
 
-    constructor(container: HTMLElement) {
+    constructor(view: EditorView, container: HTMLElement) {
+        this.view = view;
         this.container = container;
         this.arrows = new Map();
     }
 
-    drawArrows(view: EditorView, arrowIdentifierCollections: ArrowIdentifierCollection[]) {
+    drawArrows(arrowIdentifierCollections: ArrowIdentifierCollection[]) {
         // console.log("Drawing arrows.");
-
+        const view = this.view;
         const oldArrows = this.arrows;
         const newArrows = new Map();
 
@@ -26,11 +29,11 @@ export class ArrowsManager {
             if (!start) continue;
             const startOffscreen = posToOffscreenPosition(view, start.from);
 
-            const startEl = this.arrowIdentifierPosDataToDomElement(view, start);
+            const startEl = this.arrowIdentifierPosDataToDomElement(start);
             if (!(startEl instanceof HTMLElement)) continue;
 
             for (const end of arrowIdentifierCollection.ends) {
-                const endEl = this.arrowIdentifierPosDataToDomElement(view, end);
+                const endEl = this.arrowIdentifierPosDataToDomElement(end);
                 if (!(endEl instanceof HTMLElement)) continue;
                 const endOffscreen = posToOffscreenPosition(view, end.to);
 
@@ -51,12 +54,20 @@ export class ArrowsManager {
                 else {
                     // Draw an arrow between startEl and endEl
                     // console.log("Drawing an arrow between", startEl, "and", endEl);
-                    const line = this.drawArrow(startEl, endEl, start.arrowData, end.arrowData, startOffscreen, endOffscreen);
-                    if (!line) continue;
 
-                    const record = this.getArrowRecord(line, startEl, endEl, start.arrowData, end.arrowData, startOffscreen, endOffscreen);
+                    // LeaderLine may fail to draw an arrow and throw an error
+                    try {
+                        const line = this.drawArrow(startEl, endEl, start.arrowData, end.arrowData, startOffscreen, endOffscreen);
+                        if (!line) continue;
 
-                    this.addRecordToMap(newArrows, endEl, record);
+                        const record = this.getArrowRecord(line, startEl, endEl, start.arrowData, end.arrowData, startOffscreen, endOffscreen);
+
+                        this.addRecordToMap(newArrows, endEl, record);
+                    }
+                    catch (e) {
+                        // console.log("Error drawing the arrow.");
+                        continue;
+                    }
                 }
             }
         }
@@ -128,7 +139,7 @@ export class ArrowsManager {
     drawDiagonalArrow(startEl: HTMLElement, endEl: HTMLElement, startArrowData: ArrowIdentifierData, endArrowData: ArrowIdentifierData) {
         if (startEl == endEl) return;
 
-        const color = colorToEffectiveColor(startArrowData.color);
+        const color = colorToEffectiveColor(startArrowData.color, getArrowConfigFromView(this.view));
         const plugs = getStartEndArrowPlugs(constants.DIAGONAL_ARROW, startArrowData.arrowArrowhead, endArrowData.arrowArrowhead);
 
         // @ts-ignore
@@ -139,7 +150,7 @@ export class ArrowsManager {
             color: color,
             size: constants.ARROW_SIZE,
             ...plugs,
-            path: getDiagonalArrowStyleSetting()
+            path: getArrowConfigFromView(this.view).diagonalArrowStyle
         });
 
         return line;
@@ -150,7 +161,7 @@ export class ArrowsManager {
         if (!res) return;
         const {startAnchor, endAnchor} = res;
 
-        const color = colorToEffectiveColor(startArrowData.color);
+        const color = colorToEffectiveColor(startArrowData.color, getArrowConfigFromView(this.view));
         const plugs = getStartEndArrowPlugs(constants.MARGIN_ARROW, startArrowData.arrowArrowhead, endArrowData.arrowArrowhead);
         let track = startArrowData.track ? startArrowData.track : 0;
         track = fixMarginArrowTrackNo(track);
@@ -193,10 +204,11 @@ export class ArrowsManager {
         return arrowRecord;
     }
 
-    arrowIdentifierPosDataToDomElement(view: EditorView, arrow: ArrowIdentifierPosData) {
+    arrowIdentifierPosDataToDomElement(arrow: ArrowIdentifierPosData) {
         // Returns the `span.arrow-identifier-prettified-circle` element that corresponds to
         // the specified document position
 
+        const view = this.view;
         try {
             const pos = arrow.from + 1;
             const {node, offset} = view.domAtPos(pos);

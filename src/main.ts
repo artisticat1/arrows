@@ -1,8 +1,9 @@
 import { Plugin } from 'obsidian';
-import { ArrowsSettingTab, ArrowsPluginSettings, DEFAULT_SETTINGS } from "./settings";
-import { arrowsViewPlugin } from "./arrowsViewPlugin";
 import { Extension } from '@codemirror/state';
-
+import { ArrowsSettingTab, ArrowsPluginSettings, DEFAULT_SETTINGS } from "./settings";
+import { arrowsViewPlugin, refreshAllArrows } from "./arrowsViewPlugin";
+import { getArrowsConfigExtension, reconfigureArrowsConfig } from './arrowsConfig';
+import { iterateCM6 } from './utils';
 
 export default class ArrowsPlugin extends Plugin {
 	settings: ArrowsPluginSettings;
@@ -12,9 +13,11 @@ export default class ArrowsPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new ArrowsSettingTab(this.app, this));
-		this.loadUserDefinedColorsDict();
 
-		this.extensions = [arrowsViewPlugin.extension];
+		this.extensions = [
+			getArrowsConfigExtension(this.settings),
+			arrowsViewPlugin.extension
+		];
 		this.registerEditorExtension(this.extensions);
 	}
 
@@ -31,25 +34,19 @@ export default class ArrowsPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	reloadArrowsViewPlugin() {
-		this.extensions.pop();
-		this.app.workspace.updateOptions();
-
-		this.extensions.push(arrowsViewPlugin.extension);
-		this.app.workspace.updateOptions();
+	reconfigureArrowsConfig() {
+		iterateCM6(this.app.workspace, (view) => {
+			view.dispatch({
+				effects: reconfigureArrowsConfig(this.settings)
+			});
+		})
 	}
 
-	loadUserDefinedColorsDict() {
-		const dict: {[colorName: string]: string} = {};
-
-		const lines = this.settings.userDefinedColors.split("\n");
-		lines.forEach(val => {
-			const line = val.replaceAll(" ", "").split(":");
-
-			if (line[1])
-				dict[line[0]] = line[1];
-		});
-
-		this.userDefinedColorsDict = dict;
+	reloadArrowsViewPlugin() {
+		iterateCM6(this.app.workspace, (view) => {
+			view.dispatch({
+				effects: refreshAllArrows.of(null)
+			});
+		})
 	}
 }

@@ -1,9 +1,10 @@
-import { EditorState } from "@codemirror/state";
+import { EditorState, StateEffect } from "@codemirror/state";
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin, WidgetType } from "@codemirror/view";
 import { MatchDecoratorAll } from "./matchDecoratorAll";
 import { ArrowsManager } from "./arrowsManager";
 import { ArrowIdentifierData, ArrowIdentifierPosData, ArrowIdentifierCollection, arrowSourceToArrowIdentifierData, arrowIdentifierCollectionIsResolved, rangeWithinExcludedContext, colorToEffectiveColor } from './utils';
 import * as constants from "./consts";
+import { getArrowConfigFromView } from "./arrowsConfig";
 
 const arrowSourceRegex = /{([^{}]+)}/g;
 
@@ -24,6 +25,7 @@ const arrowIdentifierHighlighter = new MatchDecoratorAll({
     }
 });
 
+export const refreshAllArrows = StateEffect.define();
 
 export class ArrowsViewPlugin {
     container: HTMLElement;
@@ -35,20 +37,8 @@ export class ArrowsViewPlugin {
     constructor(view: EditorView) {
         // Create a container to hold the arrows in
         this.createContainer(view);
-        this.arrowsManager = new ArrowsManager(this.container);
-
-        this.arrowIdentifierRanges = arrowIdentifierHighlighter.createDeco(view);
-        this.decorations = Decoration.none;
-
-        // Wait until syntaxTree is ready and widgets have been rendered in the DOM to draw arrows
-        queueMicrotask(() => {
-            const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, view.state);
-            this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
-            const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, view.state);
-            this.decorations = decos;
-
-            this.arrowsManager.drawArrows(view, this.arrowIdentifierCollections);
-        });
+        this.arrowsManager = new ArrowsManager(view, this.container);
+        this.initialiseArrows(view);
     }
 
     createContainer(view: EditorView) {
@@ -58,16 +48,47 @@ export class ArrowsViewPlugin {
         this.container = container;
     }
 
+    initialiseArrows(view: EditorView) {
+        this.arrowIdentifierRanges = arrowIdentifierHighlighter.createDeco(view);
+        this.decorations = Decoration.none;
+
+        // Wait until syntaxTree is ready and widgets have been rendered in the DOM to draw arrows
+        queueMicrotask(() => {
+            const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, view.state);
+            this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
+            const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, view);
+            this.decorations = decos;
+
+            this.arrowsManager.drawArrows(this.arrowIdentifierCollections);
+        });
+    }
+
     update(update: ViewUpdate) {
+        let shouldRefreshAllArrows = false;
+        for (const transaction of update.transactions) {
+            for (const effect of transaction.effects) {
+                if (effect.is(refreshAllArrows)) {
+                    shouldRefreshAllArrows = true;
+                    break;
+                }
+            }
+        }
+        if (shouldRefreshAllArrows) {
+            this.arrowsManager.removeAllArrows();
+            this.initialiseArrows(update.view);
+            return;
+        }
+
+        // Update arrows
         this.arrowIdentifierRanges = arrowIdentifierHighlighter.updateDeco(update, this.arrowIdentifierRanges);
         const posData = this.arrowIdentifierRangesToArrowIdentifierPosData(this.arrowIdentifierRanges, update.state);
         this.arrowIdentifierCollections = this.collectArrowIdentifierPosData(posData);
-        const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, update.state);
+        const decos = this.arrowIdentifierCollectionsToDecos(this.arrowIdentifierCollections, update.view);
         this.decorations = decos;
 
         // Wait until widgets have been rendered in the DOM to draw arrows
         queueMicrotask(() => {
-            this.arrowsManager.drawArrows(update.view, this.arrowIdentifierCollections);
+            this.arrowsManager.drawArrows(this.arrowIdentifierCollections);
         });
     }
 
@@ -126,7 +147,7 @@ export class ArrowsViewPlugin {
         return Object.values(result);
     }
 
-    arrowIdentifierCollectionsToDecos(arrowIdentifierCollections: ArrowIdentifierCollection[], state: EditorState): DecorationSet {
+    arrowIdentifierCollectionsToDecos(arrowIdentifierCollections: ArrowIdentifierCollection[], view: EditorView): DecorationSet {
         const decos = [];
 
         for (const arrowIdentifierCollection of arrowIdentifierCollections) {
@@ -142,13 +163,13 @@ export class ArrowsViewPlugin {
                 if (startColor) color = startColor;
             }
 
-            color = colorToEffectiveColor(color);
+            color = colorToEffectiveColor(color, getArrowConfigFromView(view));
 
             for (const [index, arrowIdentifier] of allArrowIdentifiers.entries()) {
                 if (!arrowIdentifier) continue;
 
                 // "Unravel" the prettified circle when the cursor lies on the arrow identifier
-                const sel = state.selection.main;
+                const sel = view.state.selection.main;
                 const shouldUnravel = (sel.from >= arrowIdentifier.from) && (sel.to <= arrowIdentifier.to);
 
                 let deco;
