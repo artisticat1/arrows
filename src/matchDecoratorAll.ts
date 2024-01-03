@@ -79,7 +79,7 @@ export class MatchDecoratorAll {
     if (decorate) {
       this.addMatch = (match, view, from, add) => decorate(add, from, from + match[0].length, match, view)
     } else if (decoration) {
-      let getDeco = typeof decoration == "function" ? decoration as any : () => decoration
+      let getDeco = typeof decoration == "function" ? decoration : () => decoration
       this.addMatch = (match, view, from, add) => add(from, from + match[0].length, getDeco(match, view, from))
     } else {
       throw new RangeError("Either 'decorate' or 'decoration' should be provided to MatchDecorator")
